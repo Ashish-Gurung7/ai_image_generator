@@ -33,9 +33,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     Uint8List? bytes;
     if (_imageToEdit != null) {
-      // Logic for Editing
       bytes = await _aiService.editImage(_imageToEdit!, text);
-      _imageToEdit = null; // Reset after editing
+      _imageToEdit = null;
     } else {
       // Logic for New Generation
       bytes = await _aiService.generateImage(text);

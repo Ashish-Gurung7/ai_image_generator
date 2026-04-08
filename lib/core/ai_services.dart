@@ -28,8 +28,10 @@ class AIService {
   }
 
   Future<Uint8List?> editImage(Uint8List sourceImage, String prompt) async {
+    const String editModel = "@cf/runwayml/stable-diffusion-v1-5-img2img";
+
     final url = Uri.parse(
-      "https://api.cloudflare.com/client/v4/accounts/$accountId/ai/run/$model",
+      "https://api.cloudflare.com/client/v4/accounts/$accountId/ai/run/$editModel",
     );
 
     try {
