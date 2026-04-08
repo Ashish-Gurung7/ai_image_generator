@@ -31,8 +31,10 @@ class AIService {
     final url = Uri.parse(
       "https://api.cloudflare.com/client/v4/accounts/$accountId/ai/run/$model",
     );
+
     try {
       String base64Image = base64Encode(sourceImage);
+
       final response = await http.post(
         url,
         headers: {
@@ -41,14 +43,14 @@ class AIService {
         },
         body: jsonEncode({
           "prompt": prompt,
-          "image": base64Image,
+          "image_b64": base64Image,
           "strength": 0.5,
         }),
       );
+
       if (response.statusCode == 200) {
         return response.bodyBytes;
       } else {
-        // 2. This will tell you EXACTLY why Cloudflare is saying no
         print("Cloudflare Edit Error: ${response.statusCode}");
         print("Response Body: ${response.body}");
         return null;
