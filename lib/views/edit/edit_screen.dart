@@ -24,8 +24,7 @@ class _EditScreenState extends State<EditScreen> {
   bool _isProcessing = false;
   String? _sourceLabel;
 
-  List<File> _savedImages = [];
-  bool _isLoadingImages = true;
+
 
   // Editing presets
   final List<Map<String, dynamic>> _presets = [
@@ -37,40 +36,7 @@ class _EditScreenState extends State<EditScreen> {
     {'label': 'Pop Art', 'prompt': 'pop art style, bold colors, comic', 'icon': Icons.color_lens},
   ];
 
-  @override
-  void initState() {
-    super.initState();
-    _loadSavedImages();
-  }
 
-  Future<void> _loadSavedImages() async {
-    setState(() => _isLoadingImages = true);
-    try {
-      final tempDir = await getTemporaryDirectory();
-      final dir = Directory(tempDir.path);
-      final files = dir
-          .listSync()
-          .whereType<File>()
-          .where((f) => f.path.contains('ai_') && f.path.endsWith('.png'))
-          .toList();
-      files.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
-      setState(() {
-        _savedImages = files;
-        _isLoadingImages = false;
-      });
-    } catch (e) {
-      setState(() => _isLoadingImages = false);
-    }
-  }
-
-  void _selectImage(File file) async {
-    final bytes = await file.readAsBytes();
-    setState(() {
-      _sourceImage = bytes;
-      _resultImage = null;
-      _sourceLabel = file.path.split('/').last.split('\\').last;
-    });
-  }
 
   Future<void> _pickImage() async {
     try {
@@ -137,7 +103,6 @@ class _EditScreenState extends State<EditScreen> {
           ),
         );
       }
-      _loadSavedImages();
     } catch (_) {}
   }
 
@@ -234,94 +199,36 @@ class _EditScreenState extends State<EditScreen> {
   }
 
   Widget _buildImagePicker() {
-    if (_isLoadingImages) {
-      return const SizedBox(
-        height: 200,
-        child: Center(
-          child: CircularProgressIndicator(
-              color: AppTheme.accentCyan, strokeWidth: 3),
-        ),
-      );
-    }
-
-    if (_savedImages.isEmpty) {
-      return Column(
+    return Container(
+      width: double.infinity,
+      height: 220,
+      decoration: BoxDecoration(
+        color: AppTheme.bgCardLight,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppTheme.borderColor, width: 1.5),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _buildGalleryUploadButton(),
+          const Icon(Icons.add_photo_alternate_outlined,
+              color: AppTheme.textHint, size: 48),
           const SizedBox(height: 16),
-          Container(
-            width: double.infinity,
-            height: 160,
-            decoration: BoxDecoration(
-              color: AppTheme.bgCardLight,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: AppTheme.borderColor, width: 1.5),
-            ),
-            child: const Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.image_not_supported_outlined,
-                    color: AppTheme.textHint, size: 48),
-                SizedBox(height: 16),
-                Text('No saved AI images',
-                    style: TextStyle(
-                        color: AppTheme.textPrimary,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600)),
-                SizedBox(height: 8),
-                Text('Generate some images first from\nthe Create tab',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        color: AppTheme.textSecondary, fontSize: 13)),
-              ],
-            ),
+          const Text('Select an image to edit',
+              style: TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          const Text('Choose a picture from your device',
+              style: TextStyle(
+                  color: AppTheme.textSecondary, fontSize: 13)),
+          const SizedBox(height: 24),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
+            child: _buildGalleryUploadButton(),
           ),
         ],
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildGalleryUploadButton(),
-        const SizedBox(height: 24),
-        const Text('Or select a saved AI image:',
-            style: TextStyle(
-                color: AppTheme.textPrimary,
-                fontSize: 16,
-                fontWeight: FontWeight.w600)),
-        const SizedBox(height: 12),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-          ),
-          itemCount: _savedImages.length,
-          itemBuilder: (context, index) {
-            final file = _savedImages[index];
-            return GestureDetector(
-              onTap: () => _selectImage(file),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppTheme.borderColor),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(13),
-                  child: Image.file(file, fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Center(
-                        child: Icon(Icons.broken_image_outlined,
-                            color: AppTheme.textHint, size: 28),
-                      )),
-                ),
-              ),
-            );
-          },
-        ),
-      ],
+      ),
     );
   }
 

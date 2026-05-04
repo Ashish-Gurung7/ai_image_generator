@@ -14,18 +14,18 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = const [
-    DashboardScreen(),
-    EditScreen(),
-    GalleryScreen(),
-  ];
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: _screens,
+        children: [
+          const DashboardScreen(),
+          const EditScreen(),
+          _currentIndex == 2 ? GalleryScreen(key: UniqueKey()) : const SizedBox(),
+        ],
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
