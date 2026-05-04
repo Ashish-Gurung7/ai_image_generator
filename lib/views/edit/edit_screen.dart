@@ -24,6 +24,9 @@ class _EditScreenState extends State<EditScreen> {
   bool _isProcessing = false;
   String? _sourceLabel;
 
+  List<File> _savedImages = [];
+  bool _isLoadingImages = true;
+
   // Editing presets
   final List<Map<String, dynamic>> _presets = [
     {'label': 'Enhance', 'prompt': 'enhance quality, sharpen, improve details', 'icon': Icons.auto_fix_high},
@@ -34,27 +37,61 @@ class _EditScreenState extends State<EditScreen> {
     {'label': 'Pop Art', 'prompt': 'pop art style, bold colors, comic', 'icon': Icons.color_lens},
   ];
 
-  Future<void> _pickImage() async {
-    final picked = await _picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) {
-      final bytes = await File(picked.path).readAsBytes();
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedImages();
+  }
+
+  Future<void> _loadSavedImages() async {
+    setState(() => _isLoadingImages = true);
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final dir = Directory(tempDir.path);
+      final files = dir
+          .listSync()
+          .whereType<File>()
+          .where((f) => f.path.contains('ai_') && f.path.endsWith('.png'))
+          .toList();
+      files.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
       setState(() {
-        _sourceImage = bytes;
-        _resultImage = null;
-        _sourceLabel = picked.name;
+        _savedImages = files;
+        _isLoadingImages = false;
       });
+    } catch (e) {
+      setState(() => _isLoadingImages = false);
     }
   }
 
-  Future<void> _takePhoto() async {
-    final picked = await _picker.pickImage(source: ImageSource.camera);
-    if (picked != null) {
-      final bytes = await File(picked.path).readAsBytes();
-      setState(() {
-        _sourceImage = bytes;
-        _resultImage = null;
-        _sourceLabel = 'Camera photo';
-      });
+  void _selectImage(File file) async {
+    final bytes = await file.readAsBytes();
+    setState(() {
+      _sourceImage = bytes;
+      _resultImage = null;
+      _sourceLabel = file.path.split('/').last.split('\\').last;
+    });
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final picked = await _picker.pickImage(source: ImageSource.gallery);
+      if (picked != null) {
+        final bytes = await File(picked.path).readAsBytes();
+        setState(() {
+          _sourceImage = bytes;
+          _resultImage = null;
+          _sourceLabel = picked.name;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to pick image: $e'),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
     }
   }
 
@@ -100,6 +137,7 @@ class _EditScreenState extends State<EditScreen> {
           ),
         );
       }
+      _loadSavedImages();
     } catch (_) {}
   }
 
@@ -124,15 +162,17 @@ class _EditScreenState extends State<EditScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 8),
-                    _buildImageArea(),
-                    const SizedBox(height: 20),
+                    if (_sourceImage == null) _buildImagePicker(),
                     if (_sourceImage != null) ...[
+                      _buildSelectedImage(),
+                      const SizedBox(height: 20),
                       _buildPresetsSection(),
                       const SizedBox(height: 20),
                       _buildCustomPromptSection(),
                       const SizedBox(height: 20),
                     ],
-                    if (_resultImage != null) _buildResultSection(),
+                    if (_resultImage != null || _isProcessing)
+                      _buildResultSection(),
                     const SizedBox(height: 20),
                   ],
                 ),
@@ -193,51 +233,132 @@ class _EditScreenState extends State<EditScreen> {
     );
   }
 
-  Widget _buildImageArea() {
-    if (_sourceImage == null) {
-      return Container(
-        width: double.infinity,
-        height: 220,
-        decoration: BoxDecoration(
-          color: AppTheme.bgCardLight,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppTheme.borderColor, width: 1.5),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.add_photo_alternate_outlined,
-                color: AppTheme.textHint, size: 48),
-            const SizedBox(height: 16),
-            const Text('Select an image to edit',
-                style: TextStyle(
-                    color: AppTheme.textPrimary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
-            const Text('Choose from gallery or take a photo',
-                style: TextStyle(
-                    color: AppTheme.textSecondary, fontSize: 13)),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildPickerButton(
-                    icon: Icons.photo_library_outlined,
-                    label: 'Gallery',
-                    onTap: _pickImage),
-                const SizedBox(width: 16),
-                _buildPickerButton(
-                    icon: Icons.camera_alt_outlined,
-                    label: 'Camera',
-                    onTap: _takePhoto),
-              ],
-            ),
-          ],
+  Widget _buildImagePicker() {
+    if (_isLoadingImages) {
+      return const SizedBox(
+        height: 200,
+        child: Center(
+          child: CircularProgressIndicator(
+              color: AppTheme.accentCyan, strokeWidth: 3),
         ),
       );
     }
 
+    if (_savedImages.isEmpty) {
+      return Column(
+        children: [
+          _buildGalleryUploadButton(),
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            height: 160,
+            decoration: BoxDecoration(
+              color: AppTheme.bgCardLight,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: AppTheme.borderColor, width: 1.5),
+            ),
+            child: const Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.image_not_supported_outlined,
+                    color: AppTheme.textHint, size: 48),
+                SizedBox(height: 16),
+                Text('No saved AI images',
+                    style: TextStyle(
+                        color: AppTheme.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600)),
+                SizedBox(height: 8),
+                Text('Generate some images first from\nthe Create tab',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        color: AppTheme.textSecondary, fontSize: 13)),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildGalleryUploadButton(),
+        const SizedBox(height: 24),
+        const Text('Or select a saved AI image:',
+            style: TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.w600)),
+        const SizedBox(height: 12),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+          ),
+          itemCount: _savedImages.length,
+          itemBuilder: (context, index) {
+            final file = _savedImages[index];
+            return GestureDetector(
+              onTap: () => _selectImage(file),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppTheme.borderColor),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(13),
+                  child: Image.file(file, fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const Center(
+                        child: Icon(Icons.broken_image_outlined,
+                            color: AppTheme.textHint, size: 28),
+                      )),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGalleryUploadButton() {
+    return GestureDetector(
+      onTap: _pickImage,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          gradient: AppTheme.primaryGradient,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.accentCyan.withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.photo_library_outlined, color: AppTheme.bgDark),
+            SizedBox(width: 10),
+            Text('Upload from Device Gallery',
+                style: TextStyle(
+                    color: AppTheme.bgDark,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSelectedImage() {
     return ClipRRect(
       borderRadius: BorderRadius.circular(18),
       child: AspectRatio(
@@ -264,33 +385,6 @@ class _EditScreenState extends State<EditScreen> {
                           fontWeight: FontWeight.w500)),
                 ),
               ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPickerButton(
-      {required IconData icon,
-      required String label,
-      required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        decoration: BoxDecoration(
-          gradient: AppTheme.primaryGradient,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: AppTheme.bgDark, size: 18),
-            const SizedBox(width: 8),
-            Text(label,
-                style: const TextStyle(
-                    color: AppTheme.bgDark,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13)),
           ],
         ),
       ),
@@ -406,30 +500,31 @@ class _EditScreenState extends State<EditScreen> {
                     fontSize: 16,
                     fontWeight: FontWeight.w600)),
             const Spacer(),
-            GestureDetector(
-              onTap: _saveResult,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  gradient: AppTheme.primaryGradient,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.download_rounded,
-                        color: AppTheme.bgDark, size: 16),
-                    SizedBox(width: 6),
-                    Text('Save',
-                        style: TextStyle(
-                            color: AppTheme.bgDark,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700)),
-                  ],
+            if (_resultImage != null)
+              GestureDetector(
+                onTap: _saveResult,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    gradient: AppTheme.primaryGradient,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.download_rounded,
+                          color: AppTheme.bgDark, size: 16),
+                      SizedBox(width: 6),
+                      Text('Save',
+                          style: TextStyle(
+                              color: AppTheme.bgDark,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700)),
+                    ],
+                  ),
                 ),
               ),
-            ),
           ],
         ),
         const SizedBox(height: 12),
@@ -455,7 +550,7 @@ class _EditScreenState extends State<EditScreen> {
               ),
             ),
           )
-        else
+        else if (_resultImage != null)
           ClipRRect(
             borderRadius: BorderRadius.circular(18),
             child: Image.memory(_resultImage!, fit: BoxFit.cover),

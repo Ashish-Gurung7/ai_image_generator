@@ -23,15 +23,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   final ScrollController _scrollController = ScrollController();
 
   int _selectedStyleIndex = 0;
-  int _selectedAspectIndex = 0;
-  Uint8List? _imageToEdit;
 
-  // Aspect ratio options
-  final List<Map<String, dynamic>> _aspectRatios = [
-    {'label': '1:1', 'icon': Icons.crop_square_rounded},
-    {'label': '2:3', 'icon': Icons.crop_portrait_rounded},
-    {'label': '3:2', 'icon': Icons.crop_landscape_rounded},
-  ];
 
   void _handleGenerate() async {
     final text = _promptController.text.trim();
@@ -47,13 +39,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       _promptController.clear();
     });
 
-    Uint8List? bytes;
-    if (_imageToEdit != null) {
-      bytes = await _aiService.editImage(_imageToEdit!, enhancedPrompt);
-      _imageToEdit = null;
-    } else {
-      bytes = await _aiService.generateImage(enhancedPrompt);
-    }
+    Uint8List? bytes = await _aiService.generateImage(enhancedPrompt);
 
     setState(() {
       final index = _prompts.indexOf(newPrompt);
@@ -150,44 +136,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             ),
           ),
           const Spacer(),
-          if (_imageToEdit != null)
-            GestureDetector(
-              onTap: () => setState(() => _imageToEdit = null),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: AppTheme.accentPurple.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: AppTheme.accentPurple.withOpacity(0.5),
-                  ),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.auto_fix_high,
-                      size: 16,
-                      color: AppTheme.accentPurple,
-                    ),
-                    SizedBox(width: 6),
-                    Text(
-                      'Editing',
-                      style: TextStyle(
-                        color: AppTheme.accentPurple,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(width: 4),
-                    Icon(Icons.close, size: 14, color: AppTheme.accentPurple),
-                  ],
-                ),
-              ),
-            ),
+
         ],
       ),
     );
@@ -203,8 +152,6 @@ class _DashboardScreenState extends State<DashboardScreen>
         children: [
           const SizedBox(height: 4),
           _buildPromptSection(),
-          const SizedBox(height: 24),
-          _buildAspectRatioSection(),
           const SizedBox(height: 28),
           _buildArtStyleSection(),
           const SizedBox(height: 28),
@@ -343,9 +290,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               height: 1.5,
             ),
             decoration: InputDecoration(
-              hintText: _imageToEdit == null
-                  ? 'Describe your art in as much detail as you like...'
-                  : 'Describe changes to the image...',
+              hintText: 'Describe your art in as much detail as you like...',
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
               focusedBorder: InputBorder.none,
@@ -357,55 +302,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  // ─── ASPECT RATIO SECTION ────────────────────────────────
-  Widget _buildAspectRatioSection() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(_aspectRatios.length, (index) {
-        final isSelected = index == _selectedAspectIndex;
-        return GestureDetector(
-          onTap: () => setState(() => _selectedAspectIndex = index),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            margin: const EdgeInsets.symmetric(horizontal: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? AppTheme.accentCyan.withOpacity(0.12)
-                  : AppTheme.bgCardLight,
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: isSelected ? AppTheme.accentCyan : AppTheme.borderColor,
-                width: isSelected ? 1.5 : 1,
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  _aspectRatios[index]['icon'],
-                  size: 18,
-                  color: isSelected
-                      ? AppTheme.accentCyan
-                      : AppTheme.textSecondary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  _aspectRatios[index]['label'],
-                  style: TextStyle(
-                    color: isSelected
-                        ? AppTheme.accentCyan
-                        : AppTheme.textSecondary,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }),
-    );
-  }
+
 
   // ─── ART STYLE SECTION ──────────────────────────────────
   Widget _buildArtStyleSection() {
@@ -526,13 +423,13 @@ class _DashboardScreenState extends State<DashboardScreen>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                _imageToEdit != null ? Icons.auto_fix_high : Icons.auto_awesome,
+                Icons.auto_awesome,
                 color: AppTheme.bgDark,
               ),
               const SizedBox(width: 10),
-              Text(
-                _imageToEdit != null ? 'Apply Changes' : 'Generate',
-                style: const TextStyle(
+              const Text(
+                'Generate',
+                style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
                   color: AppTheme.bgDark,
@@ -561,9 +458,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               controller: _promptController,
               style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
               decoration: InputDecoration(
-                hintText: _imageToEdit == null
-                    ? 'Describe your art...'
-                    : 'Describe changes...',
+                hintText: 'Describe your art...',
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
@@ -591,7 +486,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           child: IconButton(
             onPressed: _handleGenerate,
             icon: Icon(
-              _imageToEdit == null ? Icons.send_rounded : Icons.auto_fix_high,
+              Icons.send_rounded,
               color: AppTheme.bgDark,
               size: 22,
             ),
@@ -701,36 +596,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                           right: 12,
                           child: Row(
                             children: [
-                              _buildActionButton(
-                                icon: Icons.auto_fix_high,
-                                tooltip: 'Edit this image',
-                                onTap: () {
-                                  setState(
-                                    () => _imageToEdit = prompt.imageBytes,
-                                  );
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: const Row(
-                                        children: [
-                                          Icon(
-                                            Icons.auto_fix_high,
-                                            color: AppTheme.accentPurple,
-                                            size: 18,
-                                          ),
-                                          SizedBox(width: 8),
-                                          Text('Image ready for editing!'),
-                                        ],
-                                      ),
-                                      backgroundColor: AppTheme.bgCardLight,
-                                      behavior: SnackBarBehavior.floating,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                              const SizedBox(width: 10),
+
                               _buildActionButton(
                                 icon: Icons.download_rounded,
                                 tooltip: 'Save to gallery',
