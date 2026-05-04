@@ -87,18 +87,16 @@ class _DashboardScreenState extends State<DashboardScreen>
             ),
             backgroundColor: AppTheme.bgCardLight,
             behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Error: $e"),
-            backgroundColor: AppTheme.error,
-          ),
+          SnackBar(content: Text("Error: $e"), backgroundColor: AppTheme.error),
         );
       }
     }
@@ -120,7 +118,9 @@ class _DashboardScreenState extends State<DashboardScreen>
           children: [
             _buildAppBar(),
             Expanded(
-              child: _prompts.isEmpty ? _buildCreateView() : _buildResultsView(),
+              child: _prompts.isEmpty
+                  ? _buildCreateView()
+                  : _buildResultsView(),
             ),
           ],
         ),
@@ -128,7 +128,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  // ─── APP BAR ──────────────────────────────────────────────
+  //APP BAR
   Widget _buildAppBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -137,13 +137,15 @@ class _DashboardScreenState extends State<DashboardScreen>
           ShaderMask(
             shaderCallback: (bounds) =>
                 AppTheme.primaryGradient.createShader(bounds),
-            child: const Text(
-              'Create Art',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-                letterSpacing: 0.5,
+            child: Center(
+              child: const Text(
+                'Create Art',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  letterSpacing: 0.5,
+                ),
               ),
             ),
           ),
@@ -152,8 +154,10 @@ class _DashboardScreenState extends State<DashboardScreen>
             GestureDetector(
               onTap: () => setState(() => _imageToEdit = null),
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: AppTheme.accentPurple.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(20),
@@ -164,8 +168,11 @@ class _DashboardScreenState extends State<DashboardScreen>
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.auto_fix_high,
-                        size: 16, color: AppTheme.accentPurple),
+                    Icon(
+                      Icons.auto_fix_high,
+                      size: 16,
+                      color: AppTheme.accentPurple,
+                    ),
                     SizedBox(width: 6),
                     Text(
                       'Editing',
@@ -233,8 +240,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                 onTap: () => setState(() => _selectedStyleIndex = index),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     gradient: selected
                         ? LinearGradient(colors: style.gradientColors)
@@ -251,9 +260,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                       Icon(
                         style.icon,
                         size: 14,
-                        color: selected
-                            ? Colors.white
-                            : AppTheme.textSecondary,
+                        color: selected ? Colors.white : AppTheme.textSecondary,
                       ),
                       const SizedBox(width: 6),
                       Text(
@@ -279,8 +286,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             controller: _scrollController,
             padding: const EdgeInsets.symmetric(horizontal: 20),
             itemCount: _prompts.length,
-            itemBuilder: (context, index) =>
-                _buildPromptCard(_prompts[index]),
+            itemBuilder: (context, index) => _buildPromptCard(_prompts[index]),
           ),
         ),
       ],
@@ -462,9 +468,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                     Icon(
                       style.icon,
                       size: 20,
-                      color: isSelected
-                          ? Colors.white
-                          : AppTheme.textSecondary,
+                      color: isSelected ? Colors.white : AppTheme.textSecondary,
                     ),
                     const SizedBox(width: 10),
                     Flexible(
@@ -475,8 +479,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                               ? Colors.white
                               : AppTheme.textSecondary,
                           fontSize: 13,
-                          fontWeight:
-                              isSelected ? FontWeight.w700 : FontWeight.w500,
+                          fontWeight: isSelected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -521,9 +526,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                _imageToEdit != null
-                    ? Icons.auto_fix_high
-                    : Icons.auto_awesome,
+                _imageToEdit != null ? Icons.auto_fix_high : Icons.auto_awesome,
                 color: AppTheme.bgDark,
               ),
               const SizedBox(width: 10),
@@ -564,8 +567,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
               ),
             ),
           ),
@@ -620,8 +625,11 @@ class _DashboardScreenState extends State<DashboardScreen>
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
             child: Row(
               children: [
-                const Icon(Icons.format_quote_rounded,
-                    color: AppTheme.accentCyan, size: 18),
+                const Icon(
+                  Icons.format_quote_rounded,
+                  color: AppTheme.accentCyan,
+                  size: 18,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -675,83 +683,84 @@ class _DashboardScreenState extends State<DashboardScreen>
                       ),
                     )
                   : prompt.imageBytes != null
-                      ? Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            ClipRRect(
-                              borderRadius: const BorderRadius.vertical(
-                                bottom: Radius.circular(18),
-                              ),
-                              child: Image.memory(
-                                prompt.imageBytes!,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                            // Action buttons overlay
-                            Positioned(
-                              bottom: 12,
-                              right: 12,
-                              child: Row(
-                                children: [
-                                  _buildActionButton(
-                                    icon: Icons.auto_fix_high,
-                                    tooltip: 'Edit this image',
-                                    onTap: () {
-                                      setState(() =>
-                                          _imageToEdit = prompt.imageBytes);
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                          content: const Row(
-                                            children: [
-                                              Icon(Icons.auto_fix_high,
-                                                  color: AppTheme.accentPurple,
-                                                  size: 18),
-                                              SizedBox(width: 8),
-                                              Text(
-                                                  'Image ready for editing!'),
-                                            ],
-                                          ),
-                                          backgroundColor:
-                                              AppTheme.bgCardLight,
-                                          behavior: SnackBarBehavior.floating,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                  const SizedBox(width: 10),
-                                  _buildActionButton(
-                                    icon: Icons.download_rounded,
-                                    tooltip: 'Save to gallery',
-                                    onTap: () => _saveImage(prompt),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        )
-                      : Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
+                  ? Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        ClipRRect(
+                          borderRadius: const BorderRadius.vertical(
+                            bottom: Radius.circular(18),
+                          ),
+                          child: Image.memory(
+                            prompt.imageBytes!,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        // Action buttons overlay
+                        Positioned(
+                          bottom: 12,
+                          right: 12,
+                          child: Row(
                             children: [
-                              Icon(Icons.error_outline_rounded,
-                                  color: AppTheme.error.withOpacity(0.7),
-                                  size: 36),
-                              const SizedBox(height: 10),
-                              const Text(
-                                'Failed to generate',
-                                style: TextStyle(
-                                  color: AppTheme.textSecondary,
-                                  fontSize: 13,
-                                ),
+                              _buildActionButton(
+                                icon: Icons.auto_fix_high,
+                                tooltip: 'Edit this image',
+                                onTap: () {
+                                  setState(
+                                    () => _imageToEdit = prompt.imageBytes,
+                                  );
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Row(
+                                        children: [
+                                          Icon(
+                                            Icons.auto_fix_high,
+                                            color: AppTheme.accentPurple,
+                                            size: 18,
+                                          ),
+                                          SizedBox(width: 8),
+                                          Text('Image ready for editing!'),
+                                        ],
+                                      ),
+                                      backgroundColor: AppTheme.bgCardLight,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                              const SizedBox(width: 10),
+                              _buildActionButton(
+                                icon: Icons.download_rounded,
+                                tooltip: 'Save to gallery',
+                                onTap: () => _saveImage(prompt),
                               ),
                             ],
                           ),
                         ),
+                      ],
+                    )
+                  : Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.error_outline_rounded,
+                            color: AppTheme.error.withOpacity(0.7),
+                            size: 36,
+                          ),
+                          const SizedBox(height: 10),
+                          const Text(
+                            'Failed to generate',
+                            style: TextStyle(
+                              color: AppTheme.textSecondary,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
             ),
           ),
         ],
@@ -774,10 +783,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppTheme.borderColor),
           boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 8,
-            ),
+            BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 8),
           ],
         ),
         child: Icon(icon, color: Colors.white, size: 20),

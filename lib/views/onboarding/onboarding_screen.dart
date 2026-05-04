@@ -1,5 +1,5 @@
 import 'package:ai_image_generator/core/app_theme.dart';
-import 'package:ai_image_generator/views/dashboard/dashboard_screen.dart';
+import 'package:ai_image_generator/views/navigation/main_navigation.dart';
 import 'package:flutter/material.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -123,7 +123,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                             context,
                             PageRouteBuilder(
                               pageBuilder: (_, __, ___) =>
-                                  const DashboardScreen(),
+                                  const MainNavigation(),
                               transitionDuration:
                                   const Duration(milliseconds: 500),
                               transitionsBuilder: (_, anim, __, child) {
