@@ -24,7 +24,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
   Future<void> _loadSavedImages() async {
     setState(() => _isLoading = true);
     try {
-      final tempDir = await getTemporaryDirectory();
+      final tempDir = await getApplicationDocumentsDirectory();
       final dir = Directory(tempDir.path);
       final files = dir
           .listSync()

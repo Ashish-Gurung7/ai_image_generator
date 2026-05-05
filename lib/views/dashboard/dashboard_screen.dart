@@ -7,7 +7,8 @@ import 'package:ai_image_generator/data/models/promt_model.dart';
 import 'package:flutter/material.dart';
 import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:khalti_flutter/khalti_flutter.dart';
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -28,6 +29,19 @@ class _DashboardScreenState extends State<DashboardScreen>
   void _handleGenerate() async {
     final text = _promptController.text.trim();
     if (text.isEmpty) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    int generateCount = prefs.getInt('generateCount') ?? 0;
+    bool isPremium = prefs.getBool('isPremium') ?? false;
+
+    if (!isPremium && generateCount >= 3) {
+      _showPremiumDialog();
+      return;
+    }
+
+    if (!isPremium) {
+      await prefs.setInt('generateCount', generateCount + 1);
+    }
 
     // Append the art style suffix to the prompt
     final style = ArtStyle.styles[_selectedStyleIndex];
@@ -53,10 +67,97 @@ class _DashboardScreenState extends State<DashboardScreen>
     });
   }
 
+  void _showPremiumDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: AppTheme.bgCard,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Limit Reached', style: TextStyle(color: AppTheme.textPrimary)),
+          content: const Text(
+            'You have reached the limit of 3 free generations. Please purchase a premium subscription to continue generating stunning AI art.',
+            style: TextStyle(color: AppTheme.textSecondary),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel', style: TextStyle(color: AppTheme.textHint)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.accentCyan,
+                foregroundColor: AppTheme.bgDark,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+                _initiateKhaltiPayment();
+              },
+              child: const Text('Go Premium (Rs. 10)'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _initiateKhaltiPayment() {
+    KhaltiScope.of(context).pay(
+      config: PaymentConfig(
+        amount: 1000, // 1000 paisa = 10 NPR
+        productIdentity: 'premium_sub_01',
+        productName: 'Premium Subscription',
+        productUrl: 'https://example.com/premium',
+        additionalData: {
+          'vendor': 'AI Art Studio',
+        },
+      ),
+      preferences: [
+        PaymentPreference.khalti,
+        PaymentPreference.connectIPS,
+        PaymentPreference.mobileBanking,
+        PaymentPreference.eBanking,
+      ],
+      onSuccess: (successModel) async {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('isPremium', true);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Payment Successful! Premium unlocked.'),
+              backgroundColor: AppTheme.accentMint,
+            ),
+          );
+        }
+      },
+      onFailure: (failureModel) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Payment Failed: ${failureModel.message}'),
+              backgroundColor: AppTheme.error,
+            ),
+          );
+        }
+      },
+      onCancel: () {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Payment Cancelled'),
+              backgroundColor: AppTheme.textHint,
+            ),
+          );
+        }
+      },
+    );
+  }
+
   Future<void> _saveImage(Prompt prompt) async {
     if (prompt.imageBytes == null) return;
     try {
-      final tempDir = await getTemporaryDirectory();
+      final tempDir = await getApplicationDocumentsDirectory();
       final path =
           '${tempDir.path}/ai_${DateTime.now().millisecondsSinceEpoch}.png';
       await File(path).writeAsBytes(prompt.imageBytes!);
