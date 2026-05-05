@@ -8,7 +8,9 @@ import 'package:flutter/material.dart';
 import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ai_image_generator/services/theme_service.dart';
 import 'package:khalti_flutter/khalti_flutter.dart';
+import 'package:ai_image_generator/services/payment_service.dart';
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -24,8 +26,20 @@ class _DashboardScreenState extends State<DashboardScreen>
   final ScrollController _scrollController = ScrollController();
 
   int _selectedStyleIndex = 0;
+  bool _isPremium = false;
 
+  @override
+  void initState() {
+    super.initState();
+    _checkPremiumStatus();
+  }
 
+  Future<void> _checkPremiumStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isPremium = prefs.getBool('isPremium') ?? false;
+    });
+  }
   void _handleGenerate() async {
     final text = _promptController.text.trim();
     if (text.isEmpty) return;
@@ -72,12 +86,12 @@ class _DashboardScreenState extends State<DashboardScreen>
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: AppTheme.bgCard,
+          backgroundColor: Theme.of(context).cardColor,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Limit Reached', style: TextStyle(color: AppTheme.textPrimary)),
-          content: const Text(
+          title: Text('Limit Reached', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+          content: Text(
             'You have reached the limit of 3 free generations. Please purchase a premium subscription to continue generating stunning AI art.',
-            style: TextStyle(color: AppTheme.textSecondary),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7)),
           ),
           actions: [
             TextButton(
@@ -103,53 +117,12 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   void _initiateKhaltiPayment() {
-    KhaltiScope.of(context).pay(
-      config: PaymentConfig(
-        amount: 1000, // 1000 paisa = 10 NPR
-        productIdentity: 'premium_sub_01',
-        productName: 'Premium Subscription',
-        productUrl: 'https://example.com/premium',
-        additionalData: {
-          'vendor': 'AI Art Studio',
-        },
-      ),
-      preferences: [
-        PaymentPreference.khalti,
-        PaymentPreference.connectIPS,
-        PaymentPreference.mobileBanking,
-        PaymentPreference.eBanking,
-      ],
-      onSuccess: (successModel) async {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('isPremium', true);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Payment Successful! Premium unlocked.'),
-              backgroundColor: AppTheme.accentMint,
-            ),
-          );
-        }
-      },
-      onFailure: (failureModel) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Payment Failed: ${failureModel.message}'),
-              backgroundColor: AppTheme.error,
-            ),
-          );
-        }
-      },
-      onCancel: () {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Payment Cancelled'),
-              backgroundColor: AppTheme.textHint,
-            ),
-          );
-        }
+    PaymentService.initiatePremiumPayment(
+      context: context,
+      onPaymentSuccess: () {
+        setState(() {
+          _isPremium = true;
+        });
       },
     );
   }
@@ -199,7 +172,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -224,20 +197,62 @@ class _DashboardScreenState extends State<DashboardScreen>
           ShaderMask(
             shaderCallback: (bounds) =>
                 AppTheme.primaryGradient.createShader(bounds),
-            child: Center(
-              child: const Text(
-                'Create Art',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                  letterSpacing: 0.5,
+            child: GestureDetector(
+              onLongPress: () async {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool('isPremium', false);
+                await prefs.setInt('generateCount', 0);
+                setState(() => _isPremium = false);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Dev: Premium reset!')),
+                );
+              },
+              child: Center(
+                child: Text(
+                  'Create Art',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: Theme.of(context).colorScheme.onSurface,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
             ),
           ),
           const Spacer(),
-
+          IconButton(
+            onPressed: () => ThemeService.toggleTheme(),
+            icon: Icon(
+              ThemeService.isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          if (!_isPremium)
+            GestureDetector(
+              onTap: _initiateKhaltiPayment,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.star_rounded, color: AppTheme.bgDark, size: 16),
+                    SizedBox(width: 4),
+                    Text(
+                      'Go Premium',
+                      style: TextStyle(
+                        color: AppTheme.bgDark,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -349,10 +364,10 @@ class _DashboardScreenState extends State<DashboardScreen>
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Enter prompt:',
               style: TextStyle(
-                color: AppTheme.textPrimary,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
@@ -377,21 +392,25 @@ class _DashboardScreenState extends State<DashboardScreen>
         const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
-            color: AppTheme.bgCardLight,
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.borderColor),
+            border: Border.all(color: Theme.of(context).dividerColor),
           ),
           child: TextFormField(
             controller: _promptController,
             maxLines: 4,
             minLines: 3,
-            style: const TextStyle(
-              color: AppTheme.textPrimary,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
               fontSize: 14,
               height: 1.5,
             ),
             decoration: InputDecoration(
               hintText: 'Describe your art in as much detail as you like...',
+              hintStyle: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+              ),
+              filled: false,
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
               focusedBorder: InputBorder.none,
@@ -410,10 +429,10 @@ class _DashboardScreenState extends State<DashboardScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Choose art style:',
           style: TextStyle(
-            color: AppTheme.textPrimary,
+            color: Theme.of(context).colorScheme.onSurface,
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
@@ -445,11 +464,11 @@ class _DashboardScreenState extends State<DashboardScreen>
                           end: Alignment.bottomRight,
                         )
                       : null,
-                  color: isSelected ? null : AppTheme.bgCardLight,
+                  color: isSelected ? null : Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(14),
                   border: isSelected
                       ? null
-                      : Border.all(color: AppTheme.borderColor),
+                      : Border.all(color: Theme.of(context).dividerColor),
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
@@ -466,7 +485,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                     Icon(
                       style.icon,
                       size: 20,
-                      color: isSelected ? Colors.white : AppTheme.textSecondary,
+                      color: isSelected ? Colors.white : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                     ),
                     const SizedBox(width: 10),
                     Flexible(
@@ -475,7 +494,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         style: TextStyle(
                           color: isSelected
                               ? Colors.white
-                              : AppTheme.textSecondary,
+                              : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                           fontSize: 13,
                           fontWeight: isSelected
                               ? FontWeight.w700
@@ -496,49 +515,38 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   // ─── GENERATE BUTTON ────────────────────────────────────
   Widget _buildGenerateButton() {
-    return SizedBox(
+    return Container(
       width: double.infinity,
-      height: 56,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: AppTheme.primaryGradient,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.accentCyan.withOpacity(0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 6),
+      height: 60,
+      decoration: BoxDecoration(
+        gradient: AppTheme.primaryGradient,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: AppTheme.glowShadow,
+      ),
+      child: ElevatedButton(
+        onPressed: _handleGenerate,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.auto_awesome, color: Colors.white, size: 22),
+            SizedBox(width: 12),
+            Text(
+              'Generate Masterpiece',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+                letterSpacing: 0.5,
+              ),
             ),
           ],
-        ),
-        child: ElevatedButton(
-          onPressed: _handleGenerate,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            shadowColor: Colors.transparent,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.auto_awesome,
-                color: AppTheme.bgDark,
-              ),
-              const SizedBox(width: 10),
-              const Text(
-                'Generate',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.bgDark,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
@@ -551,21 +559,23 @@ class _DashboardScreenState extends State<DashboardScreen>
         Expanded(
           child: Container(
             decoration: BoxDecoration(
-              color: AppTheme.bgCardLight,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppTheme.borderColor),
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Theme.of(context).dividerColor),
             ),
             child: TextFormField(
               controller: _promptController,
-              style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'Describe your art...',
+                hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
+                filled: false,
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
+                  horizontal: 20,
+                  vertical: 16,
                 ),
               ),
             ),
@@ -575,20 +585,14 @@ class _DashboardScreenState extends State<DashboardScreen>
         Container(
           decoration: BoxDecoration(
             gradient: AppTheme.primaryGradient,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.accentCyan.withOpacity(0.25),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: AppTheme.glowShadow,
           ),
           child: IconButton(
             onPressed: _handleGenerate,
-            icon: Icon(
+            icon: const Icon(
               Icons.send_rounded,
-              color: AppTheme.bgDark,
+              color: Colors.white,
               size: 22,
             ),
           ),
@@ -600,18 +604,12 @@ class _DashboardScreenState extends State<DashboardScreen>
   // ─── PROMPT / IMAGE CARD ────────────────────────────────
   Widget _buildPromptCard(Prompt prompt) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
+      margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
-        gradient: AppTheme.cardGradient,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.borderColor.withOpacity(0.5)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Theme.of(context).dividerColor),
+        boxShadow: AppTheme.premiumShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -630,8 +628,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                 Expanded(
                   child: Text(
                     prompt.text,
-                    style: const TextStyle(
-                      color: AppTheme.textPrimary,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                     ),
@@ -647,7 +645,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             aspectRatio: 1,
             child: Container(
               decoration: BoxDecoration(
-                color: AppTheme.surfaceLight,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.05),
                 borderRadius: const BorderRadius.vertical(
                   bottom: Radius.circular(18),
                 ),

@@ -7,7 +7,9 @@ import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ai_image_generator/services/theme_service.dart';
 import 'package:khalti_flutter/khalti_flutter.dart';
+import 'package:ai_image_generator/services/payment_service.dart';
 class EditScreen extends StatefulWidget {
   const EditScreen({super.key});
 
@@ -24,8 +26,20 @@ class _EditScreenState extends State<EditScreen> {
   Uint8List? _resultImage;
   bool _isProcessing = false;
   String? _sourceLabel;
+  bool _isPremium = false;
 
+  @override
+  void initState() {
+    super.initState();
+    _checkPremiumStatus();
+  }
 
+  Future<void> _checkPremiumStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isPremium = prefs.getBool('isPremium') ?? false;
+    });
+  }
 
   // Editing presets
   final List<Map<String, dynamic>> _presets = [
@@ -98,17 +112,17 @@ class _EditScreenState extends State<EditScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: AppTheme.bgCard,
+          backgroundColor: Theme.of(context).cardColor,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Limit Reached', style: TextStyle(color: AppTheme.textPrimary)),
-          content: const Text(
+          title: Text('Limit Reached', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+          content: Text(
             'You have reached the limit of 3 free generations. Please purchase a premium subscription to continue generating stunning AI art.',
-            style: TextStyle(color: AppTheme.textSecondary),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7)),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel', style: TextStyle(color: AppTheme.textHint)),
+              child: Text('Cancel', style: TextStyle(color: Theme.of(context).disabledColor)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -129,53 +143,12 @@ class _EditScreenState extends State<EditScreen> {
   }
 
   void _initiateKhaltiPayment() {
-    KhaltiScope.of(context).pay(
-      config: PaymentConfig(
-        amount: 1000, // 1000 paisa = 10 NPR
-        productIdentity: 'premium_sub_01',
-        productName: 'Premium Subscription',
-        productUrl: 'https://example.com/premium',
-        additionalData: {
-          'vendor': 'AI Art Studio',
-        },
-      ),
-      preferences: [
-        PaymentPreference.khalti,
-        PaymentPreference.connectIPS,
-        PaymentPreference.mobileBanking,
-        PaymentPreference.eBanking,
-      ],
-      onSuccess: (successModel) async {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('isPremium', true);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Payment Successful! Premium unlocked.'),
-              backgroundColor: AppTheme.accentMint,
-            ),
-          );
-        }
-      },
-      onFailure: (failureModel) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Payment Failed: ${failureModel.message}'),
-              backgroundColor: AppTheme.error,
-            ),
-          );
-        }
-      },
-      onCancel: () {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Payment Cancelled'),
-              backgroundColor: AppTheme.textHint,
-            ),
-          );
-        }
+    PaymentService.initiatePremiumPayment(
+      context: context,
+      onPaymentSuccess: () {
+        setState(() {
+          _isPremium = true;
+        });
       },
     );
   }
@@ -217,7 +190,7 @@ class _EditScreenState extends State<EditScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -258,13 +231,46 @@ class _EditScreenState extends State<EditScreen> {
         children: [
           ShaderMask(
             shaderCallback: (b) => AppTheme.primaryGradient.createShader(b),
-            child: const Text('Edit Image',
+            child: Text('Edit Image',
                 style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w800,
-                    color: Colors.white)),
+                    color: Theme.of(context).colorScheme.onSurface)),
           ),
           const Spacer(),
+          IconButton(
+            onPressed: () => ThemeService.toggleTheme(),
+            icon: Icon(
+              ThemeService.isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          if (!_isPremium)
+            GestureDetector(
+              onTap: _initiateKhaltiPayment,
+              child: Container(
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.star_rounded, color: AppTheme.bgDark, size: 16),
+                    SizedBox(width: 4),
+                    Text(
+                      'Go Premium',
+                      style: TextStyle(
+                        color: AppTheme.bgDark,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           if (_sourceImage != null)
             GestureDetector(
               onTap: () => setState(() {
@@ -300,67 +306,43 @@ class _EditScreenState extends State<EditScreen> {
     );
   }
 
-  Widget _buildImagePicker() {
-    return Container(
-      width: double.infinity,
-      height: 220,
-      decoration: BoxDecoration(
-        color: AppTheme.bgCardLight,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.borderColor, width: 1.5),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.add_photo_alternate_outlined,
-              color: AppTheme.textHint, size: 48),
-          const SizedBox(height: 16),
-          const Text('Select an image to edit',
-              style: TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          const Text('Choose a picture from your device',
-              style: TextStyle(
-                  color: AppTheme.textSecondary, fontSize: 13)),
-          const SizedBox(height: 24),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40),
-            child: _buildGalleryUploadButton(),
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildGalleryUploadButton() {
+
+  Widget _buildImagePicker() {
     return GestureDetector(
       onTap: _pickImage,
       child: Container(
+        height: 180,
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          gradient: AppTheme.primaryGradient,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.accentCyan.withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Theme.of(context).dividerColor, width: 1.5),
+          boxShadow: AppTheme.premiumShadow,
         ),
-        child: const Row(
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.photo_library_outlined, color: AppTheme.bgDark),
-            SizedBox(width: 10),
-            Text('Upload from Device Gallery',
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.accentCyan.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.add_photo_alternate_rounded,
+                  color: AppTheme.accentCyan, size: 40),
+            ),
+            const SizedBox(height: 16),
+            Text('Upload Image to Edit',
                 style: TextStyle(
-                    color: AppTheme.bgDark,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 16,
                     fontWeight: FontWeight.w700)),
+            const SizedBox(height: 4),
+            Text('PNG, JPG up to 10MB',
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                    fontSize: 12)),
           ],
         ),
       ),
@@ -404,9 +386,9 @@ class _EditScreenState extends State<EditScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Quick Styles:',
+        Text('Quick Styles:',
             style: TextStyle(
-                color: AppTheme.textPrimary,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 16,
                 fontWeight: FontWeight.w600)),
         const SizedBox(height: 12),
@@ -420,11 +402,12 @@ class _EditScreenState extends State<EditScreen> {
                   : () => _applyEdit(p['prompt']),
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 10),
+                    horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: AppTheme.bgCardLight,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.borderColor),
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Theme.of(context).dividerColor),
+                  boxShadow: AppTheme.premiumShadow,
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -433,8 +416,8 @@ class _EditScreenState extends State<EditScreen> {
                         size: 16, color: AppTheme.accentCyan),
                     const SizedBox(width: 8),
                     Text(p['label'],
-                        style: const TextStyle(
-                            color: AppTheme.textPrimary,
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontSize: 13,
                             fontWeight: FontWeight.w500)),
                   ],
@@ -451,9 +434,9 @@ class _EditScreenState extends State<EditScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Custom Edit:',
+        Text('Custom Edit:',
             style: TextStyle(
-                color: AppTheme.textPrimary,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 16,
                 fontWeight: FontWeight.w600)),
         const SizedBox(height: 12),
@@ -462,18 +445,22 @@ class _EditScreenState extends State<EditScreen> {
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: AppTheme.bgCardLight,
+                  color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppTheme.borderColor),
+                  border: Border.all(color: Theme.of(context).dividerColor),
                 ),
                 child: TextFormField(
                   controller: _promptController,
-                  style: const TextStyle(
-                      color: AppTheme.textPrimary, fontSize: 14),
-                  decoration: const InputDecoration(
+                  style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
+                  decoration: InputDecoration(
                     hintText: 'Describe changes...',
+                    hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
+                    filled: false,
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 14),
                   ),
                 ),
@@ -483,12 +470,13 @@ class _EditScreenState extends State<EditScreen> {
             Container(
               decoration: BoxDecoration(
                 gradient: AppTheme.primaryGradient,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: AppTheme.glowShadow,
               ),
               child: IconButton(
                 onPressed: _isProcessing ? null : _handleCustomEdit,
                 icon: const Icon(Icons.auto_fix_high,
-                    color: AppTheme.bgDark, size: 22),
+                    color: Colors.white, size: 22),
               ),
             ),
           ],

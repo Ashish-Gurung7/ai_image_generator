@@ -45,10 +45,10 @@ class _GalleryScreenState extends State<GalleryScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.bgCard,
+        backgroundColor: Theme.of(context).cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Delete Image',
-            style: TextStyle(color: AppTheme.textPrimary)),
+        title: Text('Delete Image',
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
         content: const Text('Are you sure you want to delete this image?',
             style: TextStyle(color: AppTheme.textSecondary)),
         actions: [
@@ -83,7 +83,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -112,19 +112,19 @@ class _GalleryScreenState extends State<GalleryScreen> {
         children: [
           ShaderMask(
             shaderCallback: (b) => AppTheme.primaryGradient.createShader(b),
-            child: const Text('My Gallery',
+            child: Text('My Gallery',
                 style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w800,
-                    color: Colors.white)),
+                    color: Theme.of(context).colorScheme.onSurface)),
           ),
           const Spacer(),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: AppTheme.bgCardLight,
+              color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppTheme.borderColor),
+              border: Border.all(color: Theme.of(context).dividerColor),
             ),
             child: Text(
               '${_savedImages.length} saved',
@@ -137,9 +137,10 @@ class _GalleryScreenState extends State<GalleryScreen> {
           const SizedBox(width: 8),
           Container(
             decoration: BoxDecoration(
-              color: AppTheme.bgCardLight,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppTheme.borderColor),
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Theme.of(context).dividerColor),
+              boxShadow: AppTheme.premiumShadow,
             ),
             child: IconButton(
               onPressed: _loadSavedImages,
@@ -161,25 +162,25 @@ class _GalleryScreenState extends State<GalleryScreen> {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: AppTheme.bgCardLight,
+              color: Theme.of(context).cardColor,
               shape: BoxShape.circle,
-              border: Border.all(color: AppTheme.borderColor),
+              border: Border.all(color: Theme.of(context).dividerColor),
             ),
-            child: const Icon(Icons.photo_library_outlined,
-                color: AppTheme.textHint, size: 36),
+            child: Icon(Icons.photo_library_outlined,
+                color: Theme.of(context).hintColor, size: 36),
           ),
           const SizedBox(height: 20),
-          const Text('No saved images yet',
+          Text('No saved images yet',
               style: TextStyle(
-                  color: AppTheme.textPrimary,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 18,
                   fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Your generated artworks will appear here\nonce you save them',
             textAlign: TextAlign.center,
             style: TextStyle(
-                color: AppTheme.textSecondary, fontSize: 13, height: 1.5),
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7), fontSize: 13, height: 1.5),
           ),
         ],
       ),
@@ -218,10 +219,11 @@ class _GalleryScreenState extends State<GalleryScreen> {
             onTap: () => _viewImage(file),
             child: Container(
               decoration: BoxDecoration(
-                gradient: AppTheme.cardGradient,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                    color: AppTheme.borderColor.withOpacity(0.5)),
+                    color: Theme.of(context).dividerColor),
+                boxShadow: AppTheme.premiumShadow,
               ),
               child: Column(
                 children: [
@@ -238,19 +240,19 @@ class _GalleryScreenState extends State<GalleryScreen> {
                         horizontal: 10, vertical: 8),
                     child: Row(
                       children: [
-                        const Icon(Icons.access_time_rounded,
-                            color: AppTheme.textHint, size: 12),
+                        Icon(Icons.access_time_rounded,
+                            color: Theme.of(context).hintColor, size: 12),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(timeAgo,
-                              style: const TextStyle(
-                                  color: AppTheme.textSecondary,
+                              style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                                   fontSize: 11)),
                         ),
                         GestureDetector(
                           onTap: () => _deleteImage(file, index),
-                          child: const Icon(Icons.delete_outline_rounded,
-                              color: AppTheme.textHint, size: 18),
+                          child: Icon(Icons.delete_outline_rounded,
+                              color: Theme.of(context).hintColor, size: 18),
                         ),
                       ],
                     ),
@@ -289,7 +291,7 @@ class _FullImageView extends StatelessWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: const Text('Saved to device gallery!'),
-                      backgroundColor: AppTheme.bgCardLight,
+                      backgroundColor: Theme.of(context).cardColor,
                       behavior: SnackBarBehavior.floating,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),

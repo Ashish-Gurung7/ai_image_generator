@@ -29,7 +29,7 @@ class _MainNavigationState extends State<MainNavigation> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: AppTheme.bgCard,
+          color: Theme.of(context).colorScheme.surface,
           border: Border(
             top: BorderSide(
               color: AppTheme.borderColor.withOpacity(0.5),
@@ -101,14 +101,14 @@ class _MainNavigationState extends State<MainNavigation> {
           children: [
             Icon(
               isActive ? activeIcon : icon,
-              color: isActive ? AppTheme.accentCyan : AppTheme.textHint,
+              color: isActive ? AppTheme.accentCyan : Theme.of(context).hintColor,
               size: 24,
             ),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                color: isActive ? AppTheme.accentCyan : AppTheme.textHint,
+                color: isActive ? AppTheme.accentCyan : Theme.of(context).hintColor,
                 fontSize: 11,
                 fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
               ),

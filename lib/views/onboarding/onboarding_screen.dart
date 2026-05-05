@@ -39,7 +39,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgDark,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: FadeTransition(
           opacity: _fadeIn,
@@ -96,71 +96,64 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 15,
-                      color: AppTheme.textSecondary,
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                       height: 1.5,
                     ),
                   ),
                   const Spacer(flex: 3),
                   // CTA Button
-                  SizedBox(
+                  Container(
                     width: double.infinity,
-                    height: 56,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: AppTheme.primaryGradient,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.accentCyan.withOpacity(0.3),
-                            blurRadius: 20,
-                            offset: const Offset(0, 6),
+                    height: 64,
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.primaryGradient,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: AppTheme.glowShadow,
+                    ),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pushReplacement(
+                          context,
+                          PageRouteBuilder(
+                            pageBuilder: (_, __, ___) =>
+                                const MainNavigation(),
+                            transitionDuration:
+                                const Duration(milliseconds: 500),
+                            transitionsBuilder: (_, anim, __, child) {
+                              return FadeTransition(
+                                opacity: anim,
+                                child: child,
+                              );
+                            },
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Start Creating',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Icon(
+                            Icons.arrow_forward_rounded,
+                            color: Colors.white,
+                            size: 24,
                           ),
                         ],
-                      ),
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            PageRouteBuilder(
-                              pageBuilder: (_, __, ___) =>
-                                  const MainNavigation(),
-                              transitionDuration:
-                                  const Duration(milliseconds: 500),
-                              transitionsBuilder: (_, anim, __, child) {
-                                return FadeTransition(
-                                  opacity: anim,
-                                  child: child,
-                                );
-                              },
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Start Creating',
-                              style: TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w700,
-                                color: AppTheme.bgDark,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            SizedBox(width: 10),
-                            Icon(
-                              Icons.arrow_forward_rounded,
-                              color: AppTheme.bgDark,
-                            ),
-                          ],
-                        ),
                       ),
                     ),
                   ),
