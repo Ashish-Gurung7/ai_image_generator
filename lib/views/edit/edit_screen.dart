@@ -81,14 +81,26 @@ class _EditScreenState extends State<EditScreen> {
 
     final prefs = await SharedPreferences.getInstance();
     int generateCount = prefs.getInt('generateCount') ?? 0;
+    int resetTime = prefs.getInt('generateCountResetTime') ?? 0;
     bool isPremium = prefs.getBool('isPremium') ?? false;
 
+    // Reset count if 24 hours have passed
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (now - resetTime >= 24 * 60 * 60 * 1000) {
+      generateCount = 0;
+      await prefs.setInt('generateCount', 0);
+      await prefs.setInt('generateCountResetTime', now);
+    }
+
     if (!isPremium && generateCount >= 3) {
-      _showPremiumDialog();
+      _showPremiumDialog(resetTime);
       return;
     }
 
     if (!isPremium) {
+      if (generateCount == 0) {
+        await prefs.setInt('generateCountResetTime', now);
+      }
       await prefs.setInt('generateCount', generateCount + 1);
     }
 
@@ -107,16 +119,22 @@ class _EditScreenState extends State<EditScreen> {
     await _applyEdit(text);
   }
 
-  void _showPremiumDialog() {
+  void _showPremiumDialog(int resetTime) {
+    final resetAt = DateTime.fromMillisecondsSinceEpoch(resetTime + 24 * 60 * 60 * 1000);
+    final remaining = resetAt.difference(DateTime.now());
+    final hours = remaining.inHours;
+    final minutes = remaining.inMinutes % 60;
+    final timeLeft = hours > 0 ? '${hours}h ${minutes}m' : '${minutes}m';
+
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           backgroundColor: Theme.of(context).cardColor,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text('Limit Reached', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+          title: Text('Daily Limit Reached', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
           content: Text(
-            'You have reached the limit of 3 free generations. Please purchase a premium subscription to continue generating stunning AI art.',
+            'You have used all 3 free generations for today. Your limit resets in $timeLeft.\n\nPurchase premium for unlimited generations!',
             style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7)),
           ),
           actions: [
