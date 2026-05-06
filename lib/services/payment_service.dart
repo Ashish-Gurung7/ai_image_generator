@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:khalti_flutter/khalti_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ai_image_generator/core/app_theme.dart';
 

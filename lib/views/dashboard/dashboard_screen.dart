@@ -9,7 +9,7 @@ import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ai_image_generator/services/theme_service.dart';
-import 'package:khalti_flutter/khalti_flutter.dart';
+
 import 'package:ai_image_generator/services/payment_service.dart';
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -124,7 +124,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
               onPressed: () {
                 Navigator.pop(context);
-                _initiateKhaltiPayment();
+                _initiatePremiumPurchase();
               },
               child: const Text('Go Premium (Rs. 10)'),
             ),
@@ -134,7 +134,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  void _initiateKhaltiPayment() {
+  void _initiatePremiumPurchase() {
     PaymentService.initiatePremiumPayment(
       context: context,
       onPaymentSuccess: () {
@@ -248,7 +248,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
           if (!_isPremium)
             GestureDetector(
-              onTap: _initiateKhaltiPayment,
+              onTap: _initiatePremiumPurchase,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(
